@@ -366,7 +366,6 @@ export default function CountriesPage() {
         onClose={() => setIsModalOpen(false)}
         title="Adicionar Novo País"
         size="lg"
-        className="bg-card text-card-foreground" // garante dark no conteúdo do modal
       >
         <form id="country-form" onSubmit={onCreate} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -424,7 +423,6 @@ export default function CountriesPage() {
         onClose={() => { setIsEditModalOpen(false); setEditingCountry(null); }}
         title="Editar País"
         size="lg"
-        className="bg-card text-card-foreground"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
