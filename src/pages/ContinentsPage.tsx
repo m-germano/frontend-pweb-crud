@@ -27,6 +27,7 @@ export default function ContinentsPage() {
 
   const [editForm, setEditForm] = useState({ nome: '', descricao: '' });
 
+  // --- FETCH DATA ---
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -36,7 +37,7 @@ export default function ContinentsPage() {
         page,
         pageSize,
       });
-      setData(res); // res = { items, page, pageSize, total }
+      setData(res);
     } catch (e: any) {
       setError(e?.message ?? 'Erro ao buscar continentes');
     } finally {
@@ -44,10 +45,12 @@ export default function ContinentsPage() {
     }
   }, [debouncedSearch, page, pageSize]);
 
+  // --- Atualiza sempre que mudar search ou page ---
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, page]);
 
+  // --- CREATE ---
   async function onCreate(ev: React.FormEvent<HTMLFormElement>) {
     ev.preventDefault();
     const form = new FormData(ev.currentTarget);
@@ -61,29 +64,29 @@ export default function ContinentsPage() {
       await createContinent({ nome: nome.trim(), descricao: descricao?.trim() || undefined });
       ev.currentTarget.reset();
       setIsModalOpen(false);
-      setPage(1);
-      fetchData();
+      setPage(1); // trigger useEffect para atualizar lista
     } catch (e: any) {
       setError(e?.message ?? 'Erro ao criar continente');
     }
   }
 
+  // --- DELETE ---
   async function onDelete(id: string) {
     if (!confirm('Tem certeza que deseja excluir este continente?')) return;
     try {
       await deleteContinent(id);
-      // recalcula página com base no total atual conhecido
+      // recalcula página
       setPage((prev) => {
         const currTotal = (data?.total ?? 1) - 1;
         const lastPage = Math.max(1, Math.ceil(currTotal / pageSize));
         return Math.min(prev, lastPage);
       });
-      fetchData();
     } catch (e: any) {
       setError(e?.message ?? 'Erro ao excluir continente');
     }
   }
 
+  // --- EDIT ---
   function onEdit(continent: Continent) {
     setEditingContinent(continent);
     setEditForm({
@@ -224,7 +227,6 @@ export default function ContinentsPage() {
                     <ContinentMap
                       name={continent.nome}
                       height={140}
-                     
                     />
                   </CardContent>
                 </Card>

@@ -12,9 +12,9 @@ import { Button } from '@/components/ui/button';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/continents', label: 'Continents', icon: Globe },
-  { to: '/countries', label: 'Countries', icon: Flag },
-  { to: '/cities', label: 'Cities', icon: MapPin },
+  { to: '/continents', label: 'Continentes', icon: Globe },
+  { to: '/countries', label: 'Países', icon: Flag },
+  { to: '/cities', label: 'Cidades', icon: MapPin },
 ];
 
 interface SidebarProps {
