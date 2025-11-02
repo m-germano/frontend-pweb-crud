@@ -27,33 +27,40 @@ export default function ContinentsPage() {
 
   const [editForm, setEditForm] = useState({ nome: '', descricao: '' });
 
-  // --- FETCH DATA ---
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await listContinents({
-        search: debouncedSearch || undefined,
-        page,
-        pageSize,
-      });
-      setData(res);
-    } catch (e: any) {
-      setError(e?.message ?? 'Erro ao buscar continentes');
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, page, pageSize]);
+  const fetchData = useCallback(
+    async (override?: { page?: number; search?: string }) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const effectivePage = override?.page ?? page;
+        const effectiveSearch = (override?.search ?? debouncedSearch) || undefined;
+        const res = await listContinents({
+          search: effectiveSearch,
+          page: effectivePage,
+          pageSize,
+        });
+        setData(res);
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || e?.message || 'Erro ao buscar continentes';
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [debouncedSearch, page, pageSize]
+  );
 
-  // --- Atualiza sempre que mudar search ou page ---
   useEffect(() => {
     fetchData();
-  }, [fetchData, page]);
+  }, [fetchData]);
 
-  // --- CREATE ---
   async function onCreate(ev: React.FormEvent<HTMLFormElement>) {
     ev.preventDefault();
-    const form = new FormData(ev.currentTarget);
+
+    // ✅ GUARDE A REFERÊNCIA DO FORM ANTES DO AWAIT
+    const formEl = ev.currentTarget;
+
+    const form = new FormData(formEl);
     const nome = String(form.get('nome') || '');
     const descricaoRaw = form.get('descricao');
     const descricao = descricaoRaw != null ? String(descricaoRaw) : undefined;
@@ -62,31 +69,34 @@ export default function ContinentsPage() {
 
     try {
       await createContinent({ nome: nome.trim(), descricao: descricao?.trim() || undefined });
-      ev.currentTarget.reset();
+      // ✅ use a referência salva; não use ev.currentTarget após await
+      formEl.reset();
       setIsModalOpen(false);
-      setPage(1); // trigger useEffect para atualizar lista
+      setPage(1);
+      await fetchData({ page: 1, search: debouncedSearch || undefined });
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao criar continente');
+      const msg = e?.response?.data?.message || e?.message || 'Erro ao criar continente';
+      setError(msg);
     }
   }
 
-  // --- DELETE ---
   async function onDelete(id: string) {
     if (!confirm('Tem certeza que deseja excluir este continente?')) return;
     try {
       await deleteContinent(id);
-      // recalcula página
-      setPage((prev) => {
-        const currTotal = (data?.total ?? 1) - 1;
-        const lastPage = Math.max(1, Math.ceil(currTotal / pageSize));
-        return Math.min(prev, lastPage);
-      });
+
+      const currTotal = Math.max(0, (data?.total ?? 0) - 1);
+      const lastPage = Math.max(1, Math.ceil(currTotal / pageSize));
+      const nextPage = Math.min(page, lastPage);
+      setPage(nextPage);
+
+      await fetchData({ page: nextPage, search: debouncedSearch || undefined });
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao excluir continente');
+      const msg = e?.response?.data?.message || e?.message || 'Erro ao excluir continente';
+      setError(msg);
     }
   }
 
-  // --- EDIT ---
   function onEdit(continent: Continent) {
     setEditingContinent(continent);
     setEditForm({
@@ -98,16 +108,21 @@ export default function ContinentsPage() {
 
   async function handleUpdateContinent() {
     if (!editingContinent) return;
+    if (!editForm.nome.trim()) return;
+
     try {
       await updateContinent(editingContinent.id, {
         nome: editForm.nome.trim(),
         descricao: editForm.descricao?.trim() || undefined,
       });
+
       setIsEditModalOpen(false);
       setEditingContinent(null);
-      fetchData();
+
+      await fetchData({ page, search: debouncedSearch || undefined });
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao atualizar continente');
+      const msg = e?.response?.data?.message || e?.message || 'Erro ao atualizar continente';
+      setError(msg);
     }
   }
 
@@ -119,7 +134,13 @@ export default function ContinentsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Continentes</h1>
           <p className="text-muted-foreground">Gerencie todos os continentes do sistema</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="sm:w-auto w-full">
+        <Button
+          onClick={() => {
+            setError(null);
+            setIsModalOpen(true);
+          }}
+          className="sm:w-auto w-full"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Adicionar Continente
         </Button>
@@ -143,7 +164,10 @@ export default function ContinentsPage() {
                   id="search"
                   placeholder="Pesquisar continentes..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    if (page !== 1) setPage(1);
+                  }}
                   className="pl-8 bg-background text-foreground border-input placeholder:text-muted-foreground"
                 />
               </div>
@@ -224,17 +248,14 @@ export default function ContinentsPage() {
                       </div>
                     </div>
 
-                    <ContinentMap
-                      name={continent.nome}
-                      height={140}
-                    />
+                    <ContinentMap name={continent.nome} height={140} />
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
 
-          {!loading && data?.items?.length === 0 && (
+          {!loading && !error && data?.items?.length === 0 && (
             <div className="text-center py-8">
               <div className="rounded-lg p-8 bg-muted/40">
                 <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -242,7 +263,10 @@ export default function ContinentsPage() {
                 <Button
                   variant="outline"
                   className="mt-4"
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={() => {
+                    setError(null);
+                    setIsModalOpen(true);
+                  }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar Primeiro Continente
@@ -261,7 +285,11 @@ export default function ContinentsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={async () => {
+                    const next = Math.max(1, page - 1);
+                    setPage(next);
+                    await fetchData({ page: next, search: debouncedSearch || undefined });
+                  }}
                   disabled={page <= 1}
                 >
                   Anterior
@@ -269,7 +297,13 @@ export default function ContinentsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => (p * pageSize < (data?.total ?? 0) ? p + 1 : p))}
+                  onClick={async () => {
+                    const hasMore = page * pageSize < (data?.total ?? 0);
+                    if (!hasMore) return;
+                    const next = page + 1;
+                    setPage(next);
+                    await fetchData({ page: next, search: debouncedSearch || undefined });
+                  }}
                   disabled={page * pageSize >= (data?.total ?? 0)}
                 >
                   Próxima
