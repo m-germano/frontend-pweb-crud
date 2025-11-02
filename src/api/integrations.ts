@@ -9,6 +9,6 @@ export type EnrichCountryResponse = {
 };
 
 export async function enrichCountryByName(nome: string): Promise<EnrichCountryResponse> {
-  const { data } = await api.post<EnrichCountryResponse>('/api/integrations/countries/enrich', { nome });
+  const { data } = await api.post<EnrichCountryResponse>('/integrations/countries/enrich', { nome });
   return data;
 }

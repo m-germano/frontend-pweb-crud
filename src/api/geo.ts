@@ -1,5 +1,3 @@
-// Integração com Open-Meteo Geocoding API (sem API key, com CORS)
-// Docs: https://open-meteo.com/en/docs/geocoding-api
 
 export type GeoCity = {
   id?: number;

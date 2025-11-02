@@ -9,12 +9,12 @@ type ListParams = {
 };
 
 export async function listCountries(params?: ListParams) {
-  const { data } = await api.get<Paginated<Country>>('/api/countries', { params });
+  const { data } = await api.get<Paginated<Country>>('/countries', { params });
   return data; // -> { items, page, pageSize, total }
 }
 
 export async function createCountry(payload: Omit<Country, 'id' | 'createdAt' | 'updatedAt'>) {
-  const { data } = await api.post<Country>('/api/countries', payload);
+  const { data } = await api.post<Country>('/countries', payload);
   return data; // -> Country
 }
 
@@ -30,10 +30,10 @@ export async function updateCountry(
     continentId: string;
   }
 ) {
-  const { data } = await api.put<Country>(`/api/countries/${id}`, payload);
+  const { data } = await api.put<Country>(`/countries/${id}`, payload);
   return data; // -> Country atualizado
 }
 
 export async function deleteCountry(id: string) {
-  await api.delete<void>(`/api/countries/${id}`);
+  await api.delete<void>(`/countries/${id}`);
 }

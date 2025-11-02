@@ -15,14 +15,14 @@ export async function listCities(params?: {
   if (params?.page) q.set('page', String(params.page));
   if (params?.pageSize) q.set('pageSize', String(params.pageSize));
 
-  const { data } = await api.get<Paginated<City>>(`/api/cities?${q.toString()}`);
+  const { data } = await api.get<Paginated<City>>(`/cities?${q.toString()}`);
   return data;
 }
 
 export async function createCity(
   payload: Omit<City, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<City> {
-  const { data } = await api.post<City>('/api/cities', payload);
+  const { data } = await api.post<City>('/cities', payload);
   return data;
 }
 
@@ -36,16 +36,16 @@ export async function updateCity(
     countryId: string;
   }
 ): Promise<City> {
-  const { data } = await api.put<City>(`/api/cities/${id}`, payload);
+  const { data } = await api.put<City>(`/cities/${id}`, payload);
   return data;
 }
 
 export async function deleteCity(id: string): Promise<void> {
-  await api.delete<void>(`/api/cities/${id}`);
+  await api.delete<void>(`/cities/${id}`);
 }
 
 export async function getWeather(lat: number, lon: number): Promise<WeatherNow> {
   const q = new URLSearchParams({ lat: String(lat), lon: String(lon) });
-  const { data } = await api.get<WeatherNow>(`/api/integrations/weather?${q.toString()}`);
+  const { data } = await api.get<WeatherNow>(`/integrations/weather?${q.toString()}`);
   return data;
 }
